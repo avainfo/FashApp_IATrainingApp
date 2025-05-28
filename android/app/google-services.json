@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "563880457340",
+    "project_id": "fashapp-backend",
+    "storage_bucket": "fashapp-backend.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:563880457340:android:84496beb99ece68f5605f9",
+        "android_client_info": {
+          "package_name": "fr.avainfo.ia_training_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByA5Y93YBOdmPRHp-HyD3mqIIb_JfGNEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
