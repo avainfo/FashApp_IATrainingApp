@@ -12,14 +12,17 @@ class CustomTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: MediaQuery.of(context).size.width,
-      child: Text(
-        title,
-        style: TextStyle(
-          color: Colors.black,
-          fontSize: 24,
-          fontWeight: FontWeight.w800,
+      height: MediaQuery.of(context).size.height / 20,
+      child: Center(
+        child: Text(
+          title,
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+          ),
+          textAlign: TextAlign.center,
         ),
-        textAlign: TextAlign.center,
       ),
     );
   }

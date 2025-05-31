@@ -1,139 +1,99 @@
 import 'dart:collection';
-import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
+import 'package:ia_training_app/data/looks/looks_model.dart';
+import 'package:ia_training_app/data/looks/looks_repository.dart';
+import 'package:ia_training_app/swiper/looks_card.dart';
+import 'package:ia_training_app/swiper/swiper_actions.dart';
 
 class LookSwiper extends StatefulWidget {
+  final List<Look> looks;
+  final LookGender gender;
+  final Future<void> Function() onLoadMore;
+
   const LookSwiper({
     super.key,
-    required this.controller,
-    this.undoMaxCount = 2,
-    this.preloadLooksCount = 3,
+    required this.looks,
+    required this.gender,
+    required this.onLoadMore,
   });
-
-  final CardSwiperController controller;
-  final int undoMaxCount;
-  final int preloadLooksCount;
 
   @override
   State<LookSwiper> createState() => _LookSwiperState();
 }
 
 class _LookSwiperState extends State<LookSwiper> {
-  Queue<Widget> looksQueue = Queue<Widget>();
-  int looksIndex = 0;
-  int undo = 0;
-
-  List<Container> cards = [];
+  final CardSwiperController _controller = CardSwiperController();
+  final LooksRepository _repo = LooksRepository();
+  Queue<Look> lookQueue = Queue<Look>();
+  int currentIndex = 0;
 
   @override
   void initState() {
-    for (int i = 0; i < 10; i++) {
-      cards.add(
-        Container(
-          alignment: Alignment.center,
-          color: i % 2 == 0 ? Colors.red : Colors.blue,
-          child: Text(i.toString()),
-        ),
-      );
-    }
-    reloadCards();
     super.initState();
+    lookQueue.addAll(widget.looks);
   }
 
-  void reloadCards() {
-    for (Widget card in cards) {
-      looksQueue.add(card);
+  void _handleSwipe(CardSwiperDirection direction) async {
+    if (currentIndex >= lookQueue.length) return;
+
+    final currentLook = lookQueue.elementAt(currentIndex);
+
+    switch (direction) {
+      case CardSwiperDirection.right:
+        await _repo.likeLook(currentLook.id);
+        break;
+      case CardSwiperDirection.left:
+        await _repo.dislikeLook(currentLook.id);
+        break;
+      default:
+        break;
     }
 
-    // TODO : Move this func into firebase swipers actions
+    setState(() => currentIndex++);
+
+    if (currentIndex >= lookQueue.length - 2) {
+      await widget.onLoadMore();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Flexible(
+    return Column(
+      children: [
+        Expanded(
+          child: Center(
             child: CardSwiper(
-              cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
-                Widget card;
-                if (looksIndex > 0) {
-                  card = looksQueue.elementAt(index - looksIndex);
-                } else {
-                  card = looksQueue.elementAt(index);
-                }
-                return card;
-              },
-              cardsCount: 99999,
-              controller: widget.controller,
+              controller: _controller,
+              cardsCount: lookQueue.length,
+              numberOfCardsDisplayed: 2,
               isLoop: false,
               onSwipe: (previousIndex, currentIndex, direction) {
-                if (undo < 0) {
-                  undo++;
-                  return true;
-                }
-                looksIndex = currentIndex! - widget.undoMaxCount;
-                if (looksIndex > 0) looksQueue.removeFirst();
-                looksQueue.elementAt(currentIndex - looksIndex);
-                if (currentIndex == 9) {
-                  reloadCards();
-                }
+                _handleSwipe(direction);
                 return true;
               },
-              onUndo: (prev, cur, dir) {
-                if (undo == -widget.undoMaxCount || cur < 0) return false;
-                undo--;
-                return true;
+              cardBuilder: (context, index, _, _) {
+                if (index >= lookQueue.length) return const SizedBox();
+                final look = lookQueue.elementAt(index);
+                return LooksCard(
+                  look: look,
+                );
               },
-              numberOfCardsDisplayed: 1,
             ),
           ),
-          SizedBox(
-            height: MediaQuery.of(context).size.height / 20,
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              FloatingActionButton(
-                shape: CircleBorder(),
-                onPressed: widget.controller.undo,
-                child: const Icon(Icons.rotate_left),
-              ),
-              FloatingActionButton(
-                shape: CircleBorder(),
-                onPressed: () => widget.controller.swipe(CardSwiperDirection.left),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(50),
-                    gradient: RadialGradient(
-                      colors: [Color(0xFFFC5B43), Color(0xFFFC305C)],
-                      center: AlignmentGeometry.xy(-1, 1),
-                      radius: 1,
-                    ),
-                  ),
-                  child: Center(child: const Icon(Icons.close_rounded, color: Colors.white)),
-                ),
-              ),
-              FloatingActionButton(
-                shape: CircleBorder(),
-                onPressed: () => widget.controller.swipe(CardSwiperDirection.right),
-                child: const Icon(Icons.check_rounded),
-              ),
-              FloatingActionButton(
-                shape: CircleBorder(),
-                onPressed: () {
-                  // TODO : Change the action of the error button
-                  log("Error of the post");
-                },
-                child: const Icon(Icons.warning_amber),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 10),
+        SwiperActions(
+          controller: _controller,
+          onError: () async {
+            if (currentIndex >= lookQueue.length) return;
+            final currentLook = lookQueue.elementAt(currentIndex);
+            await _repo.reportLookError(currentLook.id, widget.gender);
+          },
+        ),
+        const SizedBox(height: 20),
+      ],
     );
   }
 }
