@@ -108,3 +108,5 @@ Gemfile.lock
 /ios/Runner.xcworkspace/
 /firebase.json
 android/app/google-services.json
+/devtools_options.yaml
+/android/app/src/google-services.json
